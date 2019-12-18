@@ -28,7 +28,12 @@ int main() {
 
     // 读取响应
     char buffer[40];
-    read(sock, buffer, sizeof(buffer));
+    // buf 为要接收数据的缓冲区地址，nbytes 为要读取的数据的字节数
+    // recv 函数可以进行更详细的参数设置
+    if(read(sock, buffer, sizeof(buffer)) == -1) {
+        printf("read err\n");
+        exit(0);
+    }
 
     printf("Message form server: %s\n", buffer);
 
