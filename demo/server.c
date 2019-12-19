@@ -14,7 +14,7 @@ int main() {
     int serv_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (serv_sock == -1) {
         printf("socket create err\n");
-        exit(0);
+        return 0;
     }
     // 绑定 ip port
     struct sockaddr_in serv_addr;
@@ -32,7 +32,7 @@ int main() {
     // addrlen 指定了以 addr 所指向的地址结构体的字节长度
     if (bind(serv_sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) == -1) {
         printf("bind err\n");
-        exit(0);
+        return 0;
     }
     // 进入监听状态，等待用户发起请求
     // backlog 为请求队列的最大长度，根据并发量设置，设置为 SOMAXCONN 的话就由系统来决定请求队列长度
@@ -43,7 +43,7 @@ int main() {
     // 这个缓冲区，就称为请求队列（Request Queue）
     if(listen(serv_sock, 20) == -1) {
         printf("listen err\n");
-        exit(0);
+        return 0;
     }
 
     // 接收客户端请求
@@ -53,7 +53,7 @@ int main() {
     int clnt_sock = accept(serv_sock, (struct sockaddr*)&clnt_addr, &clnt_addr_size);
     if (clnt_sock == -1) {
         printf("conn accept err\n");
-        exit(0);
+        return 0;
     }
 
     // c 里面结构体指针强转（指针指向新结构体的内存开始地址，结构体长度相同的话，不会丢失、多余字节）
@@ -65,12 +65,31 @@ int main() {
     // send 函数可以进行更详细的参数设置
     if(write(clnt_sock, str, sizeof(str)) == -1) {
         printf("write err\n");
-        exit(0);
+        return 0;
     }
 
-    // 关闭 socket
-    close(clnt_sock);
-    close(serv_sock);
+    // 关闭 socket 连接
+    // client 执行后, server 正常结束, 但是重启发现 bind 失败了?
+    // 关闭一个 socket 时, 主动关闭一端的 socket 将进入 TIME_WAIT 状态 (持续 2MSL, 为了保险), 
+    // 被动关闭一方的 socket 则转入 CLOSED 状态 
+    // (tcp 的设计, 确保可重发 FIN, 参考四次挥手, 
+    // 作用: 1.保证当最后一个 ack 丢失后, 能收到对端重传的 fin 包, 
+    // 2.保证 ack 包丢失, 不会影响下一个连接 (如果不等待, ack 丢失, 对端没关闭连接, 此时有新的连接创建, 用了这个 ip:port
+    // (如果 wait, 同样 ip:port 的连接是无法创建的), 导致连接不到对端 ))
+    // 这里我们的 server 程序在 write 发完数据后, server 立马关闭 clnt_sock 时进入 TIME_WAIT 状态
+    // 而 client 程序 read 收到数据后才 close socket
+    // server 端无法收到 client 四次挥手的 RST, 导致重启无法 bind socket
+    // netstat -an | grep 8808 来查看 
+    // 源 127.0.0.1.8808 目地 127.0.0.1.55582 这个 socket 属于 TIME_WAIT (clnt_sock)
 
+    // 这里加一个 sleep 会导致 client 先关闭 socket, 进入 TIME_WAIT 状态
+    // netstat -an | grep 8808 来查看 
+    // 源 127.0.0.1.55701 目地 127.0.0.1.8808 这个 socket 属于 TIME_WAIT (client 创建的 sock)
+    sleep(1);
+
+    close(clnt_sock); // TCP 连接是全双工的，因此每个方向都必须单独进行关闭各自的 socket
+    close(serv_sock);
+    
+    
     return 0;
 }   
