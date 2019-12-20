@@ -9,13 +9,20 @@
 int main() {
     // 创建 socket 
     // AF_INET: ipv4
-    // SOCK_STREAM: 面向连接的套接字
+    // SOCK_STREAM: 面向连接的套接字 (字节流传输)
     // IPPROTO_TCP: 使用 TCP 协议
     int serv_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (serv_sock == -1) {
+    if (serv_sock < 0) {
         printf("socket create err\n");
         return 0;
     }
+    // 设置地址复用, 解决 server 主动 close socket 导致 socket 进入 WAIT_TIME 态无法 bind ip:port 的问题
+    int on = 1;
+    if(setsockopt(serv_sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0) {
+        printf("set socket reuse addr err\n");
+        return 0;
+    }
+
     // 绑定 ip port
     struct sockaddr_in serv_addr;
     serv_addr.sin_family = AF_INET;
@@ -30,7 +37,7 @@ int main() {
     // 但是没有相关函数将这个字符串转换成需要的形式，所以一般需要设置 sockaddr_in sockaddr_in6
     // 再进行地址强转
     // addrlen 指定了以 addr 所指向的地址结构体的字节长度
-    if (bind(serv_sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) == -1) {
+    if (bind(serv_sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
         printf("bind err\n");
         return 0;
     }
@@ -41,7 +48,7 @@ int main() {
     // 再从缓冲区中读取出来处理。如果不断有新的请求进来，
     // 它们就按照先后顺序在缓冲区中排队，直到缓冲区满。
     // 这个缓冲区，就称为请求队列（Request Queue）
-    if(listen(serv_sock, 20) == -1) {
+    if(listen(serv_sock, 20) < 0) {
         printf("listen err\n");
         return 0;
     }
@@ -51,7 +58,7 @@ int main() {
     socklen_t clnt_addr_size = sizeof(clnt_addr);
     // accept 返回一个新的 socket 来和客户端通信
     int clnt_sock = accept(serv_sock, (struct sockaddr*)&clnt_addr, &clnt_addr_size);
-    if (clnt_sock == -1) {
+    if (clnt_sock < 0) {
         printf("conn accept err\n");
         return 0;
     }
@@ -63,7 +70,7 @@ int main() {
     char str[] = "hello, my name is little server!\n";
     // buf 为要写入的数据的缓冲区地址，nbytes 为要写入的数据的字节数
     // send 函数可以进行更详细的参数设置
-    if(write(clnt_sock, str, sizeof(str)) == -1) {
+    if(write(clnt_sock, str, sizeof(str)) < 0) {
         printf("write err\n");
         return 0;
     }
@@ -78,18 +85,17 @@ int main() {
     // (如果 wait, 同样 ip:port 的连接是无法创建的), 导致连接不到对端 ))
     // 这里我们的 server 程序在 write 发完数据后, server 立马关闭 clnt_sock 时进入 TIME_WAIT 状态
     // 而 client 程序 read 收到数据后才 close socket
-    // server 端无法收到 client 四次挥手的 RST, 导致重启无法 bind socket
+    // server 端无法收到 client 四次挥手的 RST, 导致重启无法 bind socket (可以设置 setsockpot SO_REUSEADDR 复用地址, nginx 就是这样实现多个 worker 进程监听同个端口的)
     // netstat -an | grep 8808 来查看 
     // 源 127.0.0.1.8808 目地 127.0.0.1.55582 这个 socket 属于 TIME_WAIT (clnt_sock)
 
     // 这里加一个 sleep 会导致 client 先关闭 socket, 进入 TIME_WAIT 状态
     // netstat -an | grep 8808 来查看 
     // 源 127.0.0.1.55701 目地 127.0.0.1.8808 这个 socket 属于 TIME_WAIT (client 创建的 sock)
-    sleep(1);
+    // sleep(1);
 
     close(clnt_sock); // TCP 连接是全双工的，因此每个方向都必须单独进行关闭各自的 socket
     close(serv_sock);
-    
     
     return 0;
 }   

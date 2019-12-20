@@ -8,7 +8,7 @@
 int main() {
     // 创建 socket
     int sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock == -1) {
+    if (sock < 0) {
         printf("socket create err\n");
         return 0;
     }
@@ -21,7 +21,7 @@ int main() {
     bzero(&(serv_addr.sin_zero), 8); 
 
     // 连接服务端
-    if(connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) == -1) {
+    if(connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
         printf("connect err\n");
         return 0;
     }
@@ -30,7 +30,7 @@ int main() {
     char buffer[40];
     // buf 为要接收数据的缓冲区地址，nbytes 为要读取的数据的字节数
     // recv 函数可以进行更详细的参数设置
-    if(read(sock, buffer, sizeof(buffer)) == -1) {
+    if(read(sock, buffer, sizeof(buffer)) < 0) {
         printf("read err\n");
         return 0;
     }

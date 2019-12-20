@@ -9,7 +9,7 @@
 
 int main() {
     int sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock == -1) {
+    if (sock < 0) {
         printf("socket create err\n");
         return 0;
     }
@@ -20,7 +20,7 @@ int main() {
     serv_addr.sin_port = htons(8808);
     bzero(&(serv_addr.sin_zero), 8); 
 
-    if(connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) == -1) {
+    if(connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
         printf("connect err\n");
         return 0;
     }
@@ -28,13 +28,13 @@ int main() {
     char writeBuf[BUF_SIZE] = {0};
     printf("Input a string: ");
     scanf("%s", writeBuf);
-    if(write(sock, writeBuf, strlen(writeBuf)) == -1) {
+    if(write(sock, writeBuf, strlen(writeBuf)) < 0) {
         printf("write err\n");
         return 0;
     }
 
     char readBuf[BUF_SIZE];
-    if(read(sock, &readBuf, BUF_SIZE) == -1) {
+    if(read(sock, &readBuf, BUF_SIZE) < 0) {
         printf("read err\n");
         return 0;
     }
