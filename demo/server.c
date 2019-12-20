@@ -80,9 +80,9 @@ int main() {
     // 关闭一个 socket 时, 主动关闭一端的 socket 将进入 TIME_WAIT 状态 (持续 2MSL, 为了保险), 
     // 被动关闭一方的 socket 则转入 CLOSED 状态 
     // (tcp 的设计, 确保可重发 FIN, 参考四次挥手, 
-    // 作用: 1.保证当最后一个 ack 丢失后, 能收到对端重传的 fin 包, 
-    // 2.保证 ack 包丢失, 不会影响下一个连接 (如果不等待, ack 丢失, 对端没关闭连接, 此时有新的连接创建, 用了这个 ip:port
-    // (如果 wait, 同样 ip:port 的连接是无法创建的), 导致连接不到对端 ))
+    // 作用: 1.保证当最后一个 ack 丢失后, 对端超时后可以重传 fin 包等待 ack
+    // 2.本次连接产生的所有数据都从网络中消失, 不然同样 ip:port 的新连接可能会收到延迟的数据 )
+
     // 这里我们的 server 程序在 write 发完数据后, server 立马关闭 clnt_sock 时进入 TIME_WAIT 状态
     // 而 client 程序 read 收到数据后才 close socket
     // server 端无法收到 client 四次挥手的 RST, 导致重启无法 bind socket (可以设置 setsockpot SO_REUSEADDR 复用地址, nginx 就是这样实现多个 worker 进程监听同个端口的)
