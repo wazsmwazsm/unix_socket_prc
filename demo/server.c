@@ -22,6 +22,19 @@ int main() {
         printf("set socket reuse addr err\n");
         return 0;
     }
+    // 获取 socket 缓冲区
+    unsigned optSndVal, optRcvVal;
+    socklen_t optLen = sizeof(int);
+    getsockopt(serv_sock, SOL_SOCKET, SO_SNDBUF, (char*)&optSndVal, &optLen);
+    getsockopt(serv_sock, SOL_SOCKET, SO_RCVBUF, (char*)&optRcvVal, &optLen);
+    printf("Send Buffer length: %d, Recv buffer length:%d\n", optSndVal, optRcvVal);
+
+    // 设置缓冲区大小
+    unsigned newOptSndVal = 1024;
+    setsockopt(serv_sock, SOL_SOCKET, SO_SNDBUF, (char*)&newOptSndVal, optLen);
+    // 重获取
+    getsockopt(serv_sock, SOL_SOCKET, SO_SNDBUF, (char*)&optSndVal, &optLen);
+    printf("Send Buffer length: %d, Recv buffer length:%d\n", optSndVal, optRcvVal);
 
     // 绑定 ip port
     struct sockaddr_in serv_addr;

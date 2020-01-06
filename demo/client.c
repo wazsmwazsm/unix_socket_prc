@@ -13,6 +13,21 @@ int main() {
         return 0;
     }
 
+    // 获取 socket 缓冲区
+    unsigned optSndVal, optRcvVal;
+    socklen_t optLen = sizeof(int);
+    getsockopt(sock, SOL_SOCKET, SO_SNDBUF, (char*)&optSndVal, &optLen);
+    getsockopt(sock, SOL_SOCKET, SO_RCVBUF, (char*)&optRcvVal, &optLen);
+    printf("Send Buffer length: %d, Recv buffer length:%d\n", optSndVal, optRcvVal);
+
+    // 设置缓冲区大小
+    unsigned newOptSndVal = 1024;
+    setsockopt(sock, SOL_SOCKET, SO_RCVBUF, (char*)&newOptSndVal, optLen);
+    // 重获取
+    getsockopt(sock, SOL_SOCKET, SO_RCVBUF, (char*)&optSndVal, &optLen);
+    printf("Send Buffer length: %d, Recv buffer length:%d\n", optSndVal, optRcvVal);
+  
+  
     // 向 server 发数据
     struct sockaddr_in serv_addr;
     serv_addr.sin_family = AF_INET;
