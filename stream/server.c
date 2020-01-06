@@ -1,0 +1,69 @@
+#include <stdio.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#define BUF_SIZE 100
+
+int main() {
+
+    int serv_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (serv_sock < 0) {
+        printf("socket create err\n");
+        return 0;
+    }
+
+    int on = 1;
+    if(setsockopt(serv_sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0) {
+        printf("set socket reuse addr err\n");
+        return 0;
+    }
+    
+    struct sockaddr_in serv_addr;
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    serv_addr.sin_port = htons(8808);
+    bzero(&(serv_addr.sin_zero), 8); 
+
+    if (bind(serv_sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
+        printf("bind err\n");
+        return 0;
+    }
+    
+    if(listen(serv_sock, 20) < 0) {
+        printf("listen err\n");
+        return 0;
+    }
+
+    struct sockaddr_in clnt_addr;
+    socklen_t clnt_addr_size = sizeof(clnt_addr);
+    int clnt_sock = accept(serv_sock, (struct sockaddr*)&clnt_addr, &clnt_addr_size);
+    if (clnt_sock < 0) {
+        printf("conn accept err\n");
+        return 0;
+    }
+    printf("conn accepted ip: %s port: %d\n", inet_ntoa(*((struct in_addr*)&clnt_addr.sin_addr.s_addr)), clnt_addr.sin_port);
+
+    sleep(5); // 睡眠 5 s, 让数据接收积压
+    
+    // 读取客户端数据, 一次性读取 5s 期间所有的内容, TCP 流(无边界)的体现
+    char buffer[BUF_SIZE] = {0}; 
+    if(read(clnt_sock, &buffer, BUF_SIZE) < 0) {
+        printf("read err\n");
+        return 0;
+    }
+    printf("request content: %s", buffer);
+    // 回写
+    if(write(clnt_sock, buffer, BUF_SIZE) < 0) {
+        printf("write err\n");
+        return 0;
+    }
+
+    close(clnt_sock);
+    close(serv_sock);
+
+    return 0;
+}   
