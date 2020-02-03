@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <error.h>
+#include <errno.h>
 
 #define BUF_SIZE 100
 
@@ -35,7 +37,6 @@ int main() {
     tv.tv_usec = 0;
     
     setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-    setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
 
 
     while(1) {
@@ -48,7 +49,13 @@ int main() {
         }
 
         if(read(sock, &readBuf, BUF_SIZE) < 0) {
-            printf("read err\n");
+            if (errno == EWOULDBLOCK)
+            {
+                printf("socket timeout.\n");
+            } else {
+                printf("read err\n");
+            }
+            
             return 0;
         }
 

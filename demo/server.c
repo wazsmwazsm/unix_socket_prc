@@ -83,6 +83,9 @@ int main() {
     char str[] = "hello, my name is little server!\n";
     // buf 为要写入的数据的缓冲区地址，nbytes 为要写入的数据的字节数
     // send 函数可以进行更详细的参数设置
+    // socket 阻塞模式时，当内核缓冲区大小不足以容纳需要写入的 nbytes，write一直阻塞等待，
+    // 直到缓冲区大小 >= nbytes 时，write 一次性 copy
+    // 当内核缓冲区大小能够容纳需要写入的nbytes，write copy到缓冲区，并返回 nbytes
     if(write(clnt_sock, str, sizeof(str)) < 0) {
         printf("write err\n");
         return 0;

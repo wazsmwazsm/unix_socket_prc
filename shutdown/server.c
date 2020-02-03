@@ -65,6 +65,9 @@ int main() {
         // SHUT_WR: 断开输出流。套接字无法发送数据，但如果输出缓冲区中还有未传输的数据，则将传递到目标主机。
         // SHUT_RDWR: 同时断开 I/O 流。相当于分两次调用 shutdown()，其中一次以 SHUT_RD 为参数，另一次以 SHUT_WR 为参数。
         shutdown(clnt_sock, SHUT_RD);
+        if(write(clnt_sock, "client conn shutdown\n", BUF_SIZE) < 0) {
+            printf("write err\n");
+        }
         printf("client conn shutdown\n");
 
         memset(buffer, 0, BUF_SIZE);
